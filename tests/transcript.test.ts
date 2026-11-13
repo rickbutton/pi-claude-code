@@ -69,6 +69,29 @@ test("prepares replay frames and groups tool results", () => {
   assert.equal(frames[2]?.shouldQuery, undefined);
 });
 
+test("omits an assistant turn that was cut off with only thinking", () => {
+  const truncated: AssistantMessage = {
+    role: "assistant",
+    api: "test",
+    provider: "claude-code",
+    model: "sonnet",
+    content: [{ type: "thinking", thinking: "private", thinkingSignature: "signed" }],
+    usage,
+    stopReason: "toolUse",
+    timestamp: 1,
+  };
+  const frames = prepareFrames([
+    { role: "user", content: "go", timestamp: 0 },
+    truncated,
+    { role: "user", content: "idle?", timestamp: 2 },
+  ]);
+  assert.equal(frames.length, 1);
+  assert.deepEqual(frames[0]?.message.content, [
+    { type: "text", text: "go" },
+    { type: "text", text: "idle?" },
+  ]);
+});
+
 test("replays native signed blocks only while the visible projection is unchanged", () => {
   const assistant: AssistantMessage = {
     role: "assistant",
